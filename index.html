@@ -1,0 +1,45 @@
+
+<!doctype html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kommentarer</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Tips: Byt API_BASE i app.js till din Apps Script Web App-URL (slutar på /exec) -->
+</head>
+<body>
+  <main class="wrap">
+    <section class="card">
+      <h2>💬 Lämna en kommentar</h2>
+      <p class="muted">Skriv en hälsning till klassen. Kommentarer visas efter godkännande.</p>
+      <form id="commentForm" autocomplete="on">
+        <div class="row">
+          <label for="name">Namn (valfritt)</label>
+          <input id="name" name="name" type="text" maxlength="60" placeholder="Ditt namn" />
+        </div>
+        <div class="row">
+          <label for="comment">Kommentar</label>
+          <textarea id="comment" name="comment" rows="4" maxlength="500" placeholder="Ex: Bra jobbat klassen vid senaste insamlingen!"></textarea>
+          <div class="help"><span id="charCount">0</span>/500 tecken</div>
+        </div>
+        <div class="actions">
+          <button type="submit" id="sendBtn">Skicka</button>
+          <button type="button" id="clearBtn" class="ghost">Rensa</button>
+        </div>
+        <p id="formMsg" class="msg" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="list-header">
+        <h2>📣 Godkända kommentarer</h2>
+        <button id="refreshBtn" class="ghost small">Uppdatera</button>
+      </div>
+      <ul id="feed" class="feed" aria-live="polite"></ul>
+      <p id="status" class="muted small"></p>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
