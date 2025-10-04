@@ -1,3 +1,4 @@
+body { outline: 4px solid magenta !important; }
 :root {
   --bg: #0b1222;
   --panel: #0e1529;
