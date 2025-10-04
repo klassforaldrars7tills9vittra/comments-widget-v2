@@ -140,16 +140,33 @@ function isAdminToken_(token){ return token && token === ADMIN_TOKEN; }
 
 
 // JSON/JSONP-utdata: svarar JSONP om callback anges, annars JSON
-function json_(obj, callback) {
-  if (callback) {
-    return ContentService
-      .createTextOutput(callback + '(' + JSON.stringify(obj) + ')')
+function json_(obj, callback, statusCode) {
+  const jsonString = JSON.stringify(obj);
+  let output;
+
+  if (callback && /^[a-zA-Z_$][0-9a-zA-Z_$]*$/.test(callback)) {
+    // JSONP: skapa en JavaScript-funktion-anrop som text
+    output = ContentService.createTextOutput(`${callback}(${jsonString});`)
       .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } else {
+    // Vanlig JSON
+    output = ContentService.createTextOutput(jsonString)
+      .setMimeType(ContentService.MimeType.JSON);
   }
-  return ContentService
-    .createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
+
+  // Ställ in HTTP-statuskod (om angiven)
+  if (statusCode) {
+    try {
+      const response = output.getResponse();
+      response.setResponseCode(statusCode);
+    } catch (err) {
+      // Vissa miljöer tillåter inte custom response code – ignorera fel
+    }
+  }
+
+  return output;
 }
+
 
 
 function corHeaders_(e){
