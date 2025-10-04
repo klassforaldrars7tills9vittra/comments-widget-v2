@@ -71,23 +71,25 @@ function handleList_(p, cb) {
 
 function stripId_(r){ return { ts:r.ts, name:r.name, comment:r.comment }; }
 
-function handleSubmit_(p, e){
-  const name = String(p.name||'').trim().slice(0,60);
-  const comment = String(p.comment||'').trim();
-  if(comment.length < 3 || comment.length > 500){ return json_({ ok:false, error:'invalid_length' }, e, 400); }
+function handleSubmit_(p, e) {
+  const name = String(p.name || '').trim().slice(0, 60);
+  const comment = String(p.comment || '').trim();
+  if (comment.length < 3 || comment.length > 500) {
+    return json_({ ok: false, error: 'invalid_length' }, e, 400);
+  }
 
   const sh = ensureSheet_();
   const ts = new Date();
   let who = name || '';
-  if(!who){
-    try { who = Session.getActiveUser().getEmail() || ''; } catch(err) {}
-    if(!who) who = 'Anonym';
+  if (!who) {
+    try { who = Session.getActiveUser().getEmail() || ''; } catch (err) {}
+    if (!who) who = 'Anonym';
   }
   sh.appendRow([ts, who, comment, 'Nej']);
 
   try {
-    const to = NOTIFY_TO || Session.getEffectiveUser().getEmail();
-    if(to){
+    const to = (typeof NOTIFY_TO !== 'undefined' && NOTIFY_TO) || Session.getEffectiveUser().getEmail();
+    if (to) {
       const subj = 'Ny kommentar på Klassresesidan';
       const body = `Ny kommentar väntar på godkännande:<br>
 Från: ${who}<br>
@@ -95,13 +97,16 @@ Tid: ${ts}<br><br>
 ${comment}<br><br>
 Godkänn i Sheet (kolumn approved = Ja).`;
 
-      MailApp.sendEmail({ to, subject: subj, htmlBody: body.replace(/
-/g,'<br>'), noReply: true });
+      MailApp.sendEmail({ to, subject: subj, htmlBody: body, noReply: true });
     }
-  } catch(err) { Logger.log('Mail error: ' + err); }
+  } catch (err) {
+    Logger.log('Mail error: ' + err.message);
+    Logger.log(err.stack);
+  }
 
-  return json_({ ok:true });
+  return json_({ ok: true });
 }
+
 
 function handleModerate_(p, e){
   const token = p.token||''; if(!isAdminToken_(token)) return json_({ ok:false, error:'forbidden' }, e, 403);
