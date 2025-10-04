@@ -1,7 +1,7 @@
 
 # Kommentarswidget – Admin & e‑postnotis (redo)
 
-**API_BASE:** https://script.google.com/macros/s/AKfycbxDs9hZjv1W_kvgJ16YodZ9rkAOtyOppuqzmx3eRjUk7XZuuBOp_lzov1JJYBYj2OfarA/exec
+**API_BASE:** https://script.google.com/macros/s/AKfycbzTA6dWuhlD6XSoNnOf3nU2pFLx9gBHRZIouh19fd6cu7RL2YWMYeGUMY80dVLY-DvriQ/exec
 **NOTIFY_TO:** klassforaldrar.s7tills9.vittra@gmail.com
 **ADMIN_TOKEN:** 0924caec289cfc505292708280150e009cd4bc8c655a73da01a08f3cee81101b
 
