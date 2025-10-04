@@ -23,11 +23,12 @@ function doOptions(e){
     .setHeaders(corHeaders_(e));
 }
 
-function doGet(e){
-  const p = e && e.parameter || {};
-  const action = (p.action||'').toLowerCase();
-  if(action === 'list') return handleList_(p, e);
-  return json_({ ok:true, msg:'ok' }, e);
+// GET: vidarebefordra callback → JSONP för list
+function doGet(e) {
+  const p = (e && e.parameter) || {};
+  const action = String(p.action || '').toLowerCase();
+  if (action === 'list') return handleList_(p, p.callback);
+  return json_({ ok: true, msg: 'ok' }, p.callback);
 }
 
 function doPost(e){
@@ -38,35 +39,35 @@ function doPost(e){
   return json_({ ok:false, error:'unknown_action' }, e, 400);
 }
 
-function handleList_(p, e){
-  const status = (p.status||'approved').toLowerCase();
-  const limit = Math.max(1, Math.min(500, Number(p.limit||50)));
-  const token = p.token||'';
-  const sh = ensureSheet_();
+// Robust listning med godkänd-filter; stöd för olika header-namn
+function handleList_(p, cb) {
+  const status = String(p.status || 'approved').toLowerCase(); // approved | pending | all
+  const limit  = Math.max(1, Math.min(500, Number(p.limit || 50)));
+  const token  = String(p.token || '');
+
+  const sh  = ensureSheet_();
   const rng = sh.getDataRange().getValues();
-  const head = rng.shift()||[];
-  const idx = { ts: head.indexOf('timestamp'), name: head.indexOf('name'), comment: head.indexOf('comment'), approved: head.indexOf('approved') };
+  const head = (rng.shift() || []).map(h => String(h||'').trim().toLowerCase());
 
-  const all = rng.map((r,i)=>({
-    row: i+2,
-    ts: r[idx.ts],
-    name: String(r[idx.name]||''),
-    comment: String(r[idx.comment]||''),
-    approved: String(r[idx.approved]||'')
-  })).sort((a,b)=> new Date(b.ts) - new Date(a.ts));
+  // Hitta kolumner (case-insensitivt + fallback)
+  const idx = {
+    ts: head.indexOf('timestamp'),
+    name: head.indexOf('name'),
+    comment: head.indexOf('comment')
+  };
 
-  let items;
-  if(status === 'approved'){
-    items = all.filter(r=>/^j/i.test(r.approved)).map(stripId_).slice(0, limit);
-  } else if(status === 'pending'){
-    if(!isAdminToken_(token)) return json_({ ok:false, error:'forbidden' }, e, 403);
-    items = all.filter(r=>!/^j/i.test(r.approved)).slice(0, limit);
-  } else {
-    if(!isAdminToken_(token)) return json_({ ok:false, error:'forbidden' }, e, 403);
-    items = all.slice(0, limit);
-  }
-  return json_({ ok:true, items });
-}
+  const approvedNames = ['approved','approval','godkänd','godkand','godkända','godkannande','godkännande'];
+  let idxApproved = head.findIndex(h => approvedNames.includes(h));
+  if (idxApproved < 0) idxApproved = 3; // fallback: kolumn 4
+
+  const all = rng.map((r, i) => ({
+    row: i + 2, // 1-bas + header
+    ts: r[idx.ts >= 0 ? idx.ts : 0],
+    name: String(r[idx.name >= 0 ? idx.name : 1] || ''),
+    comment: String(r[idx.comment >= 0 ? idx.comment : 2] || ''),
+    approved: String(r[idxApproved] || '')
+  })).sort((a, b) => new Date(b.ts) - new Date(a.ts))
+
 
 function stripId_(r){ return { ts:r.ts, name:r.name, comment:r.comment }; }
 
@@ -137,13 +138,19 @@ function findCol_(sh, headerName){
 
 function isAdminToken_(token){ return token && token === ADMIN_TOKEN; }
 
-function json_(obj, e, status){
-  const out = ContentService.createTextOutput(JSON.stringify(obj));
-  out.setMimeType(ContentService.MimeType.JSON);
-  const headers = corHeaders_(e); if(status) headers['Status'] = String(status);
-  out.setHeaders(headers);
-  return out;
+
+// JSON/JSONP-utdata: svarar JSONP om callback anges, annars JSON
+function json_(obj, callback) {
+  if (callback) {
+    return ContentService
+      .createTextOutput(callback + '(' + JSON.stringify(obj) + ')')
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+  return ContentService
+    .createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
 }
+
 
 function corHeaders_(e){
   const origin = (e && e.parameter && e.parameter.origin) || '';
@@ -154,4 +161,27 @@ function corHeaders_(e){
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Max-Age': '300'
   };
+}
+
+function isApproved(val) {
+    const s = String(val||'').trim().toLowerCase();
+    // "Ja", "Yes", "True", "Approved", "x", "1"
+    return /^j/.test(s) || /^y/.test(s) || s === 'true' || s === 'approved' || s === 'x' || s === '1';
+  }
+
+  let items;
+  if (status === 'approved') {
+    items = all
+      .filter(r => isApproved(r.approved))
+      .map(r => ({ ts: r.ts, name: r.name, comment: r.comment }))
+      .slice(0, limit);
+  } else if (status === 'pending') {
+    if (!isAdminToken_(token)) return json_({ ok:false, error:'forbidden' }, cb);
+    items = all.filter(r => !isApproved(r.approved)).slice(0, limit);
+  } else {
+    if (!isAdminToken_(token)) return json_({ ok:false, error:'forbidden' }, cb);
+    items = all.slice(0, limit);
+  }
+
+  return json_({ ok:true, items }, cb);
 }
