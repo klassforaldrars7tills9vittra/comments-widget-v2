@@ -89,17 +89,12 @@ function handleSubmit_(p, e){
     const to = NOTIFY_TO || Session.getEffectiveUser().getEmail();
     if(to){
       const subj = 'Ny kommentar på Klassresesidan';
-      const body = 'Ny kommentar väntar på godkännande:
-' +
-                   'Från: ' + who + '
-' +
-                   'Tid: ' + ts + '
+      const body = `Ny kommentar väntar på godkännande:<br>
+Från: ${who}<br>
+Tid: ${ts}<br><br>
+${comment}<br><br>
+Godkänn i Sheet (kolumn approved = Ja).`;
 
-' +
-                   comment + '
-
-' +
-                   'Godkänn i Sheet (kolumn approved = Ja).';
       MailApp.sendEmail({ to, subject: subj, htmlBody: body.replace(/
 /g,'<br>'), noReply: true });
     }
